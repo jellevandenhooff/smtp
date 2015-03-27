@@ -17,7 +17,6 @@ type Handler func(*Mail)
 
 const sizeLimit = 32 * 1024
 const maxLineLength = sizeLimit
-const logData = false
 
 type conn struct {
 	domain string
@@ -288,10 +287,6 @@ func ListenAndServe(domain string, address string, handler Handler) error {
 		c, err := l.Accept()
 		if err != nil {
 			return err
-		}
-
-		if logData {
-			c = &loggingReadWriteCloser{conn: c}
 		}
 
 		conn := &conn{
