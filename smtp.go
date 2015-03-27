@@ -31,7 +31,7 @@ type conn struct {
 }
 
 func (c *conn) greeting() {
-	c.conn.Write([]byte("220 " + c.domain + " keytree/smtp ready!\r\n"))
+	c.conn.Write([]byte("220 " + c.domain + " jellevandenhooff/smtp ready!\r\n"))
 }
 
 func (c *conn) ehlo() {
@@ -272,19 +272,10 @@ func (c *conn) handle() {
 	}
 }
 
-func ListenAndServe(domain string, address string, handler Handler) error {
-	if address == "" {
-		address = ":smtp"
-	}
-
-	l, err := net.Listen("tcp", address)
-	if err != nil {
-		return err
-	}
-
+func Serve(domain string, listener net.Listener, handler Handler) error {
 	for {
 		var c io.ReadWriteCloser
-		c, err := l.Accept()
+		c, err := listener.Accept()
 		if err != nil {
 			return err
 		}
