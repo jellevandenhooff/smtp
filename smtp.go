@@ -1,3 +1,6 @@
+// Package smtp is a barebones, pure Go SMTP server.
+//
+// The server supports UTF8 and chunked e-mails.
 package smtp
 
 import (
@@ -8,15 +11,22 @@ import (
 	"strings"
 )
 
+// A Mail holds a received e-mail. From and To are SMTP protocol-level fields
+// (and not parsed from the e-mail headers).
 type Mail struct {
 	From, To string
 	Mail     string
 }
 
+// A Handler processes received e-mails. Should be thread-safe.
 type Handler func(*Mail)
 
-const sizeLimit = 32 * 1024
-const maxLineLength = sizeLimit
+// SizeLimit is the maximum e-mail in bytes. Currently, package smtp does not support large e-mails.
+const SizeLimit = 32 * 1024
+
+// MaxLineLength is the maximum length of a SMTP protocol line. Currently,
+// package smtp does not support long lines.
+const MaxLineLength = SizeLimit
 
 type conn struct {
 	domain string
@@ -202,29 +212,27 @@ func (c *conn) processCommand(cmd interface{}) bool {
 		if c.state != gotTo {
 			c.unexpectedCommand()
 			return true
-		} else {
-			mail, ok := c.readBdat(cmd)
-			if !ok {
-				return false
-			}
-			c.handler(&Mail{From: c.from, To: c.to, Mail: mail})
-			c.state, c.from, c.to = initial, "", ""
-			return true
 		}
+		mail, ok := c.readBdat(cmd)
+		if !ok {
+			return false
+		}
+		c.handler(&Mail{From: c.from, To: c.to, Mail: mail})
+		c.state, c.from, c.to = initial, "", ""
+		return true
 
 	case *dataCmd:
 		if c.state != gotTo {
 			c.unexpectedCommand()
 			return true
-		} else {
-			mail, ok := c.readData()
-			if !ok {
-				return false
-			}
-			c.handler(&Mail{From: c.from, To: c.to, Mail: mail})
-			c.state, c.from, c.to = initial, "", ""
-			return true
 		}
+		mail, ok := c.readData()
+		if !ok {
+			return false
+		}
+		c.handler(&Mail{From: c.from, To: c.to, Mail: mail})
+		c.state, c.from, c.to = initial, "", ""
+		return true
 
 	case *rsetCmd:
 		c.state, c.from, c.to = initial, "", ""
@@ -272,6 +280,8 @@ func (c *conn) handle() {
 	}
 }
 
+// Serve runs an SMTP server. Prints domain on connection. Returns an error if
+// the listener fails.
 func Serve(domain string, listener net.Listener, handler Handler) error {
 	for {
 		var c io.ReadWriteCloser
