@@ -45,7 +45,7 @@ func (c *conn) greeting() {
 }
 
 func (c *conn) ehlo() {
-	c.conn.Write([]byte("250-" + c.domain + "\r\n250-PIPELINING\r\n250-8BITMIME\r\n250-SMTPUTF8\r\n250-CHUNKING\r\n250 SIZE " + strconv.Itoa(sizeLimit) + "\r\n"))
+	c.conn.Write([]byte("250-" + c.domain + "\r\n250-PIPELINING\r\n250-8BITMIME\r\n250-SMTPUTF8\r\n250-CHUNKING\r\n250 SIZE " + strconv.Itoa(SizeLimit) + "\r\n"))
 }
 
 func (c *conn) helo() {
@@ -101,7 +101,7 @@ func (c *conn) readData() (string, bool) {
 		line = strings.TrimPrefix(line, ".")
 
 		length += len(line) + 2
-		if length > sizeLimit {
+		if length > SizeLimit {
 			c.tooMuchMail()
 			return "", false
 		}
@@ -141,7 +141,7 @@ func (c *conn) readBdat(cmd *bdatCmd) (string, bool) {
 
 	for {
 		length += cmd.length
-		if length > sizeLimit {
+		if length > SizeLimit {
 			c.tooMuchMail()
 			return "", false
 		}
@@ -293,7 +293,7 @@ func Serve(domain string, listener net.Listener, handler Handler) error {
 		conn := &conn{
 			domain:  domain,
 			conn:    c,
-			reader:  newBufferedReader(c, maxLineLength),
+			reader:  newBufferedReader(c, MaxLineLength),
 			handler: handler,
 		}
 		go conn.handle()
